@@ -1,5 +1,5 @@
 ;;;; -*- coding: utf-8; fill-column: 78 -*-
-changes relative to sbcl-1.0.45:
+changes in sbcl-1.0.46 relative to sbcl-1.0.45:
   * bug fix: local tail calls to DYNAMIC-EXTENT functions can no longer cause
     lifetime analysis to overwrite closed-over variables (lp#681092).
 
