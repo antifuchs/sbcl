@@ -8,6 +8,12 @@ generate_version() {
     if [ -f version.lisp-expr ] && ! git_available_p ; then
         # This is a release tarball. Leave version.lisp-expr alone.
         return
+    elif ! git_available_p ; then
+        echo "Can't run 'git describe' and version.lisp-expr is missing." >&2
+        echo "To fix this, either install git or create a fake version.lisp-expr file."
+        echo "You can create a fake version.lisp-expr file like this:" >&2
+        echo "    \$ echo '\"1.0.99.999\"' > version.lisp-expr" >&2
+        exit 1
     else
         # Use non-annotated tags (a boinkor git specialty), and append
         # -dirty to a dirty tree.
