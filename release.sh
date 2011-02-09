@@ -25,7 +25,17 @@ fi
 
 set -x
 
+sbcl_directory="$(cd "$(dirname $0)"; pwd)"
+
 ## Check for messy work dirs:
+
+git fetch
+
+branch_name="release-$(date '+%s')"
+original_branch="$(git status -bs | head -1 | awk '{ print $2 }' )"
+trap "cd \"$sbcl_directory\" ; git checkout $original_branch" EXIT
+# XXX/asf: should branch off master, need this to branch off git-toolchain for now.
+git checkout -b $branch_name git-toolchain  # origin/master   
 
 if [ $(git status --porcelain | wc -l) = 0 ]
 #    && "$(git log --oneline origin/master.. | wc -l)" = 0
@@ -41,7 +51,6 @@ fi
 sed -i.orig "/^changes relative to sbcl-.*:/ s/changes/changes in sbcl-$version/ " NEWS
 rm NEWS.orig
 
-sbcl_directory="$(cd "$(dirname $0)"; pwd)"
 cd "$sbcl_directory"
 
 git add NEWS
@@ -108,7 +117,8 @@ set +x
 echo SBCL distribution has been prepared in "$tmpdir"
 echo TODO:
 echo
-echo "git push && git push --tags"
+echo "git merge $branch_name && git push && git push --tags"
+echo "git branch -d $branch_name"
 echo "cd \"$tmpdir\""
 echo gpg -sta sbcl-$version-crhodes
 echo sftp crhodes,sbcl@frs.sourceforge.net
