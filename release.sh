@@ -26,6 +26,8 @@ fi
 set -x
 
 sbcl_directory="$(cd "$(dirname $0)"; pwd)"
+tmpfile=$(mktemp -t sbcl-build-$(date +%Y%m%d)-XXXXXXXXX)
+tmpdir="$(mktemp -d -t sbcl-build-tree-$(date +%Y%m%d)-XXXXXXXXX)"
 
 ## Check for messy work dirs:
 
@@ -55,11 +57,15 @@ cd "$sbcl_directory"
 
 git add NEWS
 git commit -m "$version: will be tagged as \"sbcl.$version\""
-git tag $sign -m "Released on $(date)" "sbcl.$version"
-# For compatibility, tag like this also (feel free to drop that):
-git tag $sign -m "Released on $(date)" "sbcl_$(echo $version | sed 's/\./_/g')"
 
-tmpfile=$(mktemp -t sbcl-build-$(date +%Y%m%d)-XXXXXXXXX)
+awk "BEGIN { state = 0 }
+ /^changes in sbcl-/ { state = 0 } 
+ /^changes in sbcl-$version/ { state = 1 }
+ { if(state == 1) print \$0 }" < NEWS > $tmpdir/sbcl-$version-release-notes.txt
+
+git tag $sign -F $tmpdir/sbcl-$version-release-notes.txt "sbcl.$version"
+# For compatibility, tag like this also (feel free to drop that):
+git tag $sign -F $tmpdir/sbcl-$version-release-notes.txt "sbcl_$(echo $version | sed 's/\./_/g')"
 
 ./make.sh >$tmpfile 2>&1
 
@@ -72,7 +78,6 @@ cd tests
 sh ./run-tests.sh >>$tmpfile 2>&1
 cd ..
 
-tmpdir="$(mktemp -d -t sbcl-build-tree-$(date +%Y%m%d)-XXXXXXXXX)"
 
 cp ./src/runtime/sbcl "$tmpdir"/sbcl-$version-bin
 cp ./output/sbcl.core "$tmpdir"/sbcl-$version.core
@@ -94,11 +99,6 @@ cd sbcl-$version
 sh ./distclean.sh
 cd ..
 sh sbcl-$version/source-distribution.sh sbcl-$version
-
-awk "BEGIN { state = 0 }
- /^changes in sbcl-/ { state = 0 } 
- /^changes in sbcl-$version/ { state = 1 }
- { if(state == 1) print \$0 }" < sbcl-$version/NEWS > sbcl-$version-release-notes.txt
 
 echo "The SHA256 checksums of the following distribution files are:" > sbcl-$version-crhodes
 echo >> sbcl-$version-crhodes
